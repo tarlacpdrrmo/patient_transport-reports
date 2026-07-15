@@ -46,7 +46,7 @@
         }
 
         .header-title-wrapper svg {
-            color: #16a34a; /* Medical Green Theme */
+            color: #16a34a; 
             background: #dcfce7;
             padding: 8px;
             border-radius: 8px;
@@ -116,7 +116,7 @@
             flex-direction: column;
             gap: 8px;
             flex: 1;
-            min-width: 160px;
+            min-width: 140px;
         }
 
         .filter-group label {
@@ -294,6 +294,16 @@
             transform: scale(1.03);
             box-shadow: 0 4px 10px rgba(22, 163, 74, 0.25);
         }
+        
+        .age-bracket-tag {
+            font-size: 0.6rem;
+            color: #94a3b8;
+            background: #f8fafc;
+            padding: 4px 8px;
+            border-radius: 4px;
+            margin-left: 8px;
+            border: 1px solid #e2e8f0;
+        }
 
         .empty-state { 
             text-align: center; 
@@ -321,7 +331,6 @@
         
         <div class="header-top">
             <div class="header-title-wrapper">
-                <!-- Medical Clipboard with Cross SVG -->
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                     <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -341,7 +350,7 @@
         <div class="filter-panel">
             <div class="filter-group" style="flex: 1.5;">
                 <label for="searchInput">Search Data</label>
-                <input type="text" id="searchInput" class="filter-input" placeholder="Search Control No., Residence..." onkeyup="applyFilters()">
+                <input type="text" id="searchInput" class="filter-input" placeholder="Search Control No., Age..." onkeyup="applyFilters()">
             </div>
             <div class="filter-group">
                 <label for="yearFilter">Filter by Year</label>
@@ -361,6 +370,18 @@
                     <option value="all">ALL PURPOSES</option>
                 </select>
             </div>
+            <div class="filter-group">
+                <label for="ageFilter">Filter by Age</label>
+                <select id="ageFilter" class="filter-input" onchange="applyFilters()">
+                    <option value="all">ALL AGES</option>
+                    <option value="1-20">1-20 YEARS OLD</option>
+                    <option value="21-35">21-35 YEARS OLD</option>
+                    <option value="36-50">36-50 YEARS OLD</option>
+                    <option value="51-63">51-63 YEARS OLD</option>
+                    <option value="64-70">64-70 YEARS OLD</option>
+                    <option value="71+">71 YEARS & ABOVE</option>
+                </select>
+            </div>
             <button onclick="resetFilters()" class="btn-reset">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><polyline points="3 3 3 8 8 8"></polyline></svg>
                 Reset
@@ -374,7 +395,7 @@
                         <th>Control No.</th>
                         <th>Date</th>
                         <th>Purpose</th>
-                        <th>Residence</th>
+                        <th>Patient Age</th>
                     </tr>
                 </thead>
                 <tbody id="tableBody"></tbody>
@@ -388,18 +409,16 @@
 
     </div>
 
-   <script>
+    <script>
         // INSERT YOUR NEW GOOGLE APPS SCRIPT URL HERE
         const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzcrCjXPGIPCm-xcgOCesbWAnPMzjOdq6UnsTQGyZzWhAnubx40tmPGBsNXqyU1-_Sv4w/exec"; 
         
         let rawTableData = [];
 
-        // NEW FUNCTION: Standardizes the Purpose text
         function cleanPurposeText(rawText) {
             if (!rawText) return '-';
             let text = String(rawText).toUpperCase().trim();
 
-            // Grouping logic: If the text contains these keywords, change it to the standard category
             if (text.includes("DISCHARGE") || text.includes("DISCGHARGE")) return "HOSPITAL DISCHARGE";
             if (text.includes("TRANSFER")) return "HOSPITAL TRANSFER";
             if (text.includes("CHECK UP") || text.includes("CHECK-UP") || text.includes("FOLLOW UP")) return "CHECK UP";
@@ -408,8 +427,22 @@
             if (text.includes("CHEMO")) return "CHEMO THERAPY";
             if (text.includes("DIALYSIS")) return "DIALYSIS";
             
-            // If it doesn't match any above, just return what was typed
             return text; 
+        }
+
+        // Logic to classify raw age numbers into your specific brackets
+        function getAgeBracket(ageStr) {
+            let age = parseInt(ageStr);
+            if (isNaN(age)) return '-';
+            
+            if (age >= 1 && age <= 20) return '1-20';
+            if (age >= 21 && age <= 35) return '21-35';
+            if (age >= 36 && age <= 50) return '36-50';
+            if (age >= 51 && age <= 63) return '51-63';
+            if (age >= 64 && age <= 70) return '64-70';
+            if (age >= 71) return '71+';
+            
+            return '-';
         }
 
         async function fetchTransportData() {
@@ -443,8 +476,6 @@
 
             data.forEach(row => {
                 const dateVal = row['Date'] || row['DATE'] || '';
-                
-                // Use the cleaner function here to populate the dropdown
                 const purposeVal = cleanPurposeText(row['Purpose'] || row['PURPOSE'] || '');
 
                 if (purposeVal && purposeVal !== '-') {
@@ -481,14 +512,17 @@
             const yearQuery = document.getElementById('yearFilter').value;
             const monthQuery = document.getElementById('monthFilter').value;
             const purposeQuery = document.getElementById('purposeFilter').value;
+            const ageQuery = document.getElementById('ageFilter').value;
 
             const monthNames = ["JANUARY", "FEBRUARY", "MARCH", "APRIL", "MAY", "JUNE", "JULY", "AUGUST", "SEPTEMBER", "OCTOBER", "NOVEMBER", "DECEMBER"];
 
             const filteredData = rawTableData.filter(row => {
                 const dateVal = row['Date'] || row['DATE'] || '';
-                
-                // Use the cleaner function here for searching
                 const purposeVal = cleanPurposeText(row['Purpose'] || row['PURPOSE'] || '');
+                
+                // Account for potential naming differences if the backend wasn't updated yet
+                const rawAge = row['Patient Age'] || row['PATIENT AGE'] || row['Residence'] || row['RESIDENCE'] || '';
+                const bracket = getAgeBracket(rawAge);
                 
                 let rowYear = "";
                 let rowMonth = "";
@@ -505,8 +539,9 @@
                 const matchesYear = (yearQuery === 'all') || (rowYear === yearQuery);
                 const matchesMonth = (monthQuery === 'all') || (rowMonth === monthQuery);
                 const matchesPurpose = (purposeQuery === 'all') || (purposeVal === purposeQuery);
+                const matchesAge = (ageQuery === 'all') || (bracket === ageQuery);
 
-                return matchesSearch && matchesYear && matchesMonth && matchesPurpose;
+                return matchesSearch && matchesYear && matchesMonth && matchesPurpose && matchesAge;
             });
 
             renderTable(filteredData);
@@ -549,9 +584,17 @@
                     }
                 }
 
-                // Use the cleaner function here to display in the table
                 const purposeVal = cleanPurposeText(row['Purpose'] || row['PURPOSE'] || '-');
-                const residence = String(row['Residence'] || row['RESIDENCE'] || '-').toUpperCase();
+                
+                // Account for potential naming differences if the backend wasn't updated yet
+                const rawAge = String(row['Patient Age'] || row['PATIENT AGE'] || row['Residence'] || row['RESIDENCE'] || '-').toUpperCase().trim();
+                const bracket = getAgeBracket(rawAge);
+                
+                let ageDisplay = rawAge;
+                // Append the bracket tag to the table if it's a valid number
+                if (bracket !== '-') {
+                    ageDisplay = `${rawAge} <span class="age-bracket-tag">Group: ${bracket}</span>`;
+                }
 
                 if (controlNo === '-' && dateVal === '-' && purposeVal === '-') return;
 
@@ -565,7 +608,7 @@
                     <td style="font-weight: 800; color: #16a34a; position: relative;">${controlNo}</td>
                     <td style="color: #64748b;">${dateVal}</td>
                     <td><span class="badge-pill">${purposeVal}</span></td>
-                    <td style="font-weight: 700; color: #0f172a;">${residence}</td>
+                    <td style="font-weight: 700; color: #0f172a;">${ageDisplay}</td>
                 `;
                 
                 fragment.appendChild(tr);
@@ -579,6 +622,7 @@
             document.getElementById('yearFilter').value = 'all';
             document.getElementById('monthFilter').value = 'all';
             document.getElementById('purposeFilter').value = 'all';
+            document.getElementById('ageFilter').value = 'all';
             applyFilters();
         }
 
