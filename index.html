@@ -388,11 +388,29 @@
 
     </div>
 
-    <script>
+   <script>
         // INSERT YOUR NEW GOOGLE APPS SCRIPT URL HERE
-        const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzcrCjXPGIPCm-xcgOCesbWAnPMzjOdq6UnsTQGyZzWhAnubx40tmPGBsNXqyU1-_Sv4w/exec"; 
+        const WEB_APP_URL = "YOUR_NEW_WEB_APP_URL_HERE"; 
         
         let rawTableData = [];
+
+        // NEW FUNCTION: Standardizes the Purpose text
+        function cleanPurposeText(rawText) {
+            if (!rawText) return '-';
+            let text = String(rawText).toUpperCase().trim();
+
+            // Grouping logic: If the text contains these keywords, change it to the standard category
+            if (text.includes("DISCHARGE") || text.includes("DISCGHARGE")) return "HOSPITAL DISCHARGE";
+            if (text.includes("TRANSFER")) return "HOSPITAL TRANSFER";
+            if (text.includes("CHECK UP") || text.includes("CHECK-UP") || text.includes("FOLLOW UP")) return "CHECK UP";
+            if (text.includes("ADMISSION") || text.includes("ADMIT")) return "FOR ADMISSION";
+            if (text.includes("LABORATORY") || text.includes("LAB")) return "FOR LABORATORY";
+            if (text.includes("CHEMO")) return "CHEMO THERAPY";
+            if (text.includes("DIALYSIS")) return "DIALYSIS";
+            
+            // If it doesn't match any above, just return what was typed
+            return text; 
+        }
 
         async function fetchTransportData() {
             try {
@@ -425,7 +443,9 @@
 
             data.forEach(row => {
                 const dateVal = row['Date'] || row['DATE'] || '';
-                const purposeVal = String(row['Purpose'] || row['PURPOSE'] || '').toUpperCase().trim();
+                
+                // Use the cleaner function here to populate the dropdown
+                const purposeVal = cleanPurposeText(row['Purpose'] || row['PURPOSE'] || '');
 
                 if (purposeVal && purposeVal !== '-') {
                     purposes.add(purposeVal);
@@ -466,7 +486,9 @@
 
             const filteredData = rawTableData.filter(row => {
                 const dateVal = row['Date'] || row['DATE'] || '';
-                const purposeVal = String(row['Purpose'] || row['PURPOSE'] || '').toUpperCase().trim();
+                
+                // Use the cleaner function here for searching
+                const purposeVal = cleanPurposeText(row['Purpose'] || row['PURPOSE'] || '');
                 
                 let rowYear = "";
                 let rowMonth = "";
@@ -527,7 +549,8 @@
                     }
                 }
 
-                const purposeVal = String(row['Purpose'] || row['PURPOSE'] || '-').toUpperCase().trim();
+                // Use the cleaner function here to display in the table
+                const purposeVal = cleanPurposeText(row['Purpose'] || row['PURPOSE'] || '-');
                 const residence = String(row['Residence'] || row['RESIDENCE'] || '-').toUpperCase();
 
                 if (controlNo === '-' && dateVal === '-' && purposeVal === '-') return;
